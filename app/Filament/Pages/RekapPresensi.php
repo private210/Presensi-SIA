@@ -15,7 +15,6 @@ use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use pxlrbt\FilamentExcel\Actions\Pages\ExportAction;
 use pxlrbt\FilamentExcel\Columns\Column;
-use pxlrbt\FilamentExcel\Rows\Row;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class RekapPresensi extends Page
@@ -39,13 +38,14 @@ class RekapPresensi extends Page
     {
         $user = Auth::user();
 
-        if ($user->role === 'wali_kelas') {
+        // Otomatisasi filter berdasarkan peran pengguna
+        if ($user->roles->contains('Wali Kelas')) {
             // Cari kelas yang diampu oleh wali kelas
             $kelas = Kelas::where('wali_kelas_id', $user->id)->first();
             if ($kelas) {
                 $this->kelas_id = $kelas->id;
             }
-        } elseif ($user->role === 'wali_murid') {
+        } elseif ($user->roles->contains('Wali Murid')) {
             // Ambil siswa yang menjadi anak dari wali murid
             $siswa = Siswa::where('wali_murid_id', $user->id)->first();
             if ($siswa) {
@@ -56,6 +56,11 @@ class RekapPresensi extends Page
 
         $this->bulan = Carbon::now()->month;
         $this->tahun = Carbon::now()->year;
+
+        // Generate laporan otomatis jika filter sudah tersedia
+        if ($this->kelas_id) {
+            $this->generateReport();
+        }
     }
 
     public function bulanOptions()
@@ -92,8 +97,12 @@ class RekapPresensi extends Page
     {
         $user = Auth::user();
 
-        if ($user->role === 'wali_kelas') {
+        if ($user->roles->contains('Wali Kelas')) {
             return Kelas::where('wali_kelas_id', $user->id)->pluck('nama_kelas', 'id')->toArray();
+        } elseif ($user->roles->contains('Wali Murid')) {
+            return Kelas::whereHas('siswa', function ($query) use ($user) {
+                $query->where('wali_murid_id', $user->id);
+            })->pluck('nama_kelas', 'id')->toArray();
         }
 
         return Kelas::pluck('nama_kelas', 'id')->toArray();
@@ -103,12 +112,12 @@ class RekapPresensi extends Page
     {
         $user = Auth::user();
 
-        if ($user->role === 'wali_murid') {
-            return Siswa::where('wali_murid_id', $user->id)->pluck('nama', 'id')->toArray();
+        if ($user->roles->contains('Wali Murid')) {
+            return Siswa::where('wali_murid_id', $user->id)->pluck('nama_siswa', 'id')->toArray();
         }
 
         if ($this->kelas_id) {
-            return Siswa::where('kelas_id', $this->kelas_id)->pluck('nama', 'id')->toArray();
+            return Siswa::where('kelas_id', $this->kelas_id)->pluck('nama_siswa', 'id')->toArray();
         }
 
         return [];
@@ -143,7 +152,7 @@ class RekapPresensi extends Page
             $siswaQuery->where('id', $this->siswa_id);
         }
 
-        $siswas = $siswaQuery->get();
+        $siswas = $siswaQuery->orderBy('nama_siswa')->get();
 
         // Reset data rekap
         $this->rekapData = [];
@@ -153,13 +162,13 @@ class RekapPresensi extends Page
             $siswaData = [
                 'id' => $siswa->id,
                 'nis' => $siswa->nis,
-                'nama' => $siswa->nama,
+                'nama' => $siswa->nama_siswa,
                 'presensi' => [],
                 'total' => [
-                    'H' => 0,
-                    'S' => 0,
-                    'I' => 0,
-                    'A' => 0,
+                    'hadir' => 0,
+                    'sakit' => 0,
+                    'izin' => 0,
+                    'alpa' => 0,
                 ]
             ];
 
@@ -202,43 +211,57 @@ class RekapPresensi extends Page
     {
         return [
             ExportAction::make('export')
-                ->label('Export Excel')
+                ->label('Ekspor Excel')
                 ->color('success')
                 ->icon('heroicon-o-document-arrow-down')
                 ->exports([
                     ExcelExport::make()
+                        ->withFilename('rekap-presensi-' . now()->format('Y-m-d'))
                         ->withColumns([
                             Column::make('no')->heading('No'),
                             Column::make('nis')->heading('NIS'),
                             Column::make('nama')->heading('Nama Siswa'),
-                            ...collect($this->tanggalList)->map(fn ($tanggal) =>
-                                Column::make($tanggal)->heading(Carbon::parse($tanggal)->format('d'))
+                            ...collect($this->tanggalList)->map(
+                                fn($tanggal) =>
+                                Column::make('tanggal_' . str_replace('-', '_', $tanggal))
+                                    ->heading(Carbon::parse($tanggal)->format('d'))
                             )->toArray(),
-                            Column::make('h')->heading('H'),
-                            Column::make('s')->heading('S'),
-                            Column::make('i')->heading('I'),
-                            Column::make('a')->heading('A'),
+                            Column::make('hadir')->heading('Hadir'),
+                            Column::make('sakit')->heading('Sakit'),
+                            Column::make('izin')->heading('Izin'),
+                            Column::make('alpa')->heading('Alpa'),
                         ])
-                        // ->withRows(collect($this->rekapData)->map(function ($siswa, $index) {
-                        //     $row = [
-                        //         'no' => $index + 1,
-                        //         'nis' => $siswa['nis'],
-                        //         'nama' => $siswa['nama']
-                        //     ];
+                        ->withColumns(
+                            fn() => collect($this->rekapData)
+                                ->map(function ($siswa, $index) {
+                                    $row = [
+                                        'no' => $index + 1,
+                                        'nis' => $siswa['nis'],
+                                        'nama' => $siswa['nama'],
+                                        'hadir' => $siswa['total']['hadir'] ?? 0,
+                                        'sakit' => $siswa['total']['sakit'] ?? 0,
+                                        'izin' => $siswa['total']['izin'] ?? 0,
+                                        'alpa' => $siswa['total']['alpa'] ?? 0,
+                                    ];
 
-                        //     foreach ($this->tanggalList as $tanggal) {
-                        //         $row[$tanggal] = $siswa['presensi'][$tanggal] ?? '-';
-                        //     }
+                                    // Tambahkan data per-tanggal
+                                    foreach ($this->tanggalList as $tanggal) {
+                                        $columnName = 'tanggal_' . str_replace('-', '_', $tanggal);
+                                        $row[$columnName] = $siswa['presensi'][$tanggal] ?? '-';
+                                    }
 
-                        //     $row['h'] = $siswa['total']['H'] ?? 0;
-                        //     $row['s'] = $siswa['total']['S'] ?? 0;
-                        //     $row['i'] = $siswa['total']['I'] ?? 0;
-                        //     $row['a'] = $siswa['total']['A'] ?? 0;
-
-                        //     return $row;
-                        // })->toArray())
-                        ->withFilename('rekap-presensi-' . now()->format('Y-m-d'))
+                                    return $row;
+                                })
+                                ->toArray()
+                        )
                 ])
+                ->visible(count($this->rekapData) > 0)
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        return $user->roles->contains(['admin', 'Wali Kelas', 'Wali Murid', 'Kepala Sekolah']);
     }
 }
