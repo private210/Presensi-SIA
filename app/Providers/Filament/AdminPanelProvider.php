@@ -7,12 +7,13 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use App\Filament\Pages\Auth\LoginCustom;
+use App\Filament\Resources\UserResource;
+use Filament\Http\Middleware\Authenticate;
 use App\Filament\Widgets\FilamentLogoWidget;
 use App\Filament\Widgets\SystemStatusWidget;
 use App\Filament\Widgets\NotificationsWidget;
-use Filament\Support\Colors\Color;
-use App\Filament\Resources\UserResource;
-use Filament\Http\Middleware\Authenticate;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
@@ -33,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(LoginCustom::class)
             ->colors([
                 'primary' => Color::Amber,
             ])

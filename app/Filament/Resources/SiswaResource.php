@@ -11,7 +11,10 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Illuminate\Support\Facades\Auth;
+use App\Filament\Exports\SiswaExporter;
 use App\Filament\Imports\SiswaImporter;
+use Filament\Tables\Actions\ExportAction;
+use Filament\Tables\Actions\ImportAction;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\SiswaResource\Pages;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
@@ -37,7 +40,7 @@ class SiswaResource extends Resource
                     ->label('NIS')
                     ->numeric()  // Menambahkan validasi hanya angka
                     ->minLength(6) // Opsional, jika NISN harus memiliki panjang tertentu
-                    ->placeholder('Masukkan NISN'),
+                    ->placeholder('Masukkan NIS'),
                 Forms\Components\TextInput::make('nama_siswa')
                     ->required()
                     ->maxLength(255)
@@ -90,6 +93,16 @@ class SiswaResource extends Resource
                     ->label('Nama Siswa'),
                 Tables\Columns\TextColumn::make('kelas.nama_kelas')
                     ->sortable()
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'Kelas 1' => 'primary',
+                        'Kelas 2' => 'info',
+                        'Kelas 3' => 'warning',
+                        'Kelas 4' => 'danger',
+                        'Kelas 5' => 'success',
+                        'Kelas 6' => 'secondary',
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->label('Kelas'),
                 Tables\Columns\TextColumn::make('WaliMurid.name')
@@ -125,6 +138,10 @@ class SiswaResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
                 ExportBulkAction::make(),
+            ])
+            ->headerActions([
+                ExportAction::make()->exporter(SiswaExporter::class),
+                ImportAction::make()->importer(SiswaImporter::class),
             ]);
         // ->headerActions([
         //     ImportAction::make()

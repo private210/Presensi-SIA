@@ -16,9 +16,9 @@ class ListSiswas extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            ImportAction::make()
-                ->label('Import Siswa')
-                ->importer(SiswaImporter::class),
+            // ImportAction::make()
+            //     ->label('Import Siswa')
+            //     ->importer(SiswaImporter::class),
             Actions\Action::make('downloadTemplate')
                 ->label('Download Template')
                 ->url(route('download.siswa.template'))

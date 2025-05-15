@@ -3,13 +3,9 @@
 namespace App\Filament\Imports;
 
 use App\Models\User;
-use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\ImportColumn;
+use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Filament\Actions\Imports\ImportColumn\ImportColumnRule;
-use Illuminate\Validation\Rule;
 
 class UserImporter extends Importer
 {
@@ -19,32 +15,16 @@ class UserImporter extends Importer
     {
         return [
             ImportColumn::make('name')
-                ->rules(['required', 'string', 'max:255']),
-
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
             ImportColumn::make('email')
-                ->rules([
-                    'required',
-                    'email',
-                    'max:255',
-                    Rule::unique('users', 'email'), // Email wajib unik
-                ]),
-
+                ->requiredMapping()
+                ->rules(['required', 'email', 'max:255']),
+            ImportColumn::make('email_verified_at')
+                ->rules(['email', 'datetime']),
             ImportColumn::make('password')
-                ->prepareStateUsing(fn($state) => Hash::make($state))
-                ->rules(['required', 'string', 'min:8']), // Minimal 8 karakter
-
-            ImportColumn::make('roles')
-                ->prepareStateUsing(function ($state, $record) {
-                    if ($state && Role::where('name', trim($state))->exists()) {
-                        $record->save(); // Save user dulu
-                        $record->assignRole(trim($state));
-                    }
-                    return null; // Tidak simpan 'roles' ke kolom user
-                })
-                ->rules([
-                    'required',
-                    Rule::exists('roles', 'name'), // Role harus sudah ada
-                ]),
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
         ];
     }
 

@@ -132,9 +132,9 @@ class RoleResource extends Resource implements HasShieldPermissions
     {
         return [
             'index' => Pages\ListRoles::route('/'),
-            // 'create' => Pages\CreateRole::route('/create'),
-            // 'view' => Pages\ViewRole::route('/{record}'),
-            // 'edit' => Pages\EditRole::route('/{record}/edit'),
+            'create' => Pages\CreateRole::route('/create'),
+            'view' => Pages\ViewRole::route('/{record}'),
+            'edit' => Pages\EditRole::route('/{record}/edit'),
         ];
     }
 

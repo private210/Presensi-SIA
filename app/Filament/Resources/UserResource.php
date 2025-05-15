@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Collection;
 use STS\FilamentImpersonate\Tables\Actions\Impersonate;
 
 class UserResource extends Resource
@@ -93,6 +94,20 @@ class UserResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+                Tables\Actions\BulkAction::make('Pilih Role')
+                    ->action(function (Collection $records, array $data) {
+                        foreach ($records as $record) {
+                            // Pastikan menggunakan sync untuk memperbarui hubungan many-to-many
+                            $record->roles()->sync($data['roles']);
+                        }
+                    })
+                    ->form([
+                        Forms\Components\Select::make('roles')
+                            ->relationship('roles', 'name')
+                            ->label('Update Role')
+                            ->required(),
+                    ])
+                    ->requiresConfirmation(),
             ]);
     }
 
