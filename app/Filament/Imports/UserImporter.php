@@ -20,11 +20,8 @@ class UserImporter extends Importer
             ImportColumn::make('email')
                 ->requiredMapping()
                 ->rules(['required', 'email', 'max:255']),
-            ImportColumn::make('email_verified_at')
-                ->rules(['email', 'datetime']),
             ImportColumn::make('password')
-                ->requiredMapping()
-                ->rules(['required', 'max:255']),
+                ->rules(['max:255']),
         ];
     }
 

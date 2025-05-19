@@ -27,7 +27,7 @@ class SiswaImporter extends Importer
                 ->rules(['required']),
             ImportColumn::make('wali_murid_id')
                 ->requiredMapping()
-                ->relationship()
+                ->relationship('roles.name', 'Wali Murid')
                 ->rules(['required']),
             ImportColumn::make('jenis_kelamin')
                 ->requiredMapping()

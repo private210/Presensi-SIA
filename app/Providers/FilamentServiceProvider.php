@@ -9,6 +9,6 @@ class FilamentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Set import untuk berjalan synchronously (tanpa queue)
-        config(['filament-actions.imports.is_queued' => false]);
+        // config(['filament-actions.imports.is_queued' => false]);
     }
 }

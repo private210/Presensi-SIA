@@ -67,6 +67,12 @@ class User extends Authenticatable implements FilamentUser
         return null;
     }
 
+    public function canManagePresensiKelas()
+    {
+        // Replace this with your actual permission logic
+        return $this->hasRole('super_admin') || $this->hasRole('Wali Kelas');
+    }
+
     public function kelasWali()
     {
         return $this->hasOne(Kelas::class, 'wali_kelas_id');
